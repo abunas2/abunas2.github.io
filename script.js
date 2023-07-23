@@ -1,23 +1,66 @@
-// Sample data for the bar chart
-const dataset = [10, 25, 15, 30, 20];
+// CSV data
+d3.csv("AB_NYC_2019.csv").then(function(data) {
+  const listingsData = data;
+  console.log(listingsData);
 
-// Visualization: Create the bar chart
-const width = 400; // Replace 400 with your desired width
-const height = 300; // Replace 300 with your desired height
+  // neighborhood
+  const priceComparisonData = d3.group(listingsData, (d) => d.neighbourhood_group);
 
-// Append the SVG container to the div with id "visualization-container"
-const svg = d3.select("#visualization-container")
-  .append("svg")
-  .attr("width", width)
-  .attr("height", height);
+  // average price for each neighborhood group
+    const neighborhoodAveragePrices = Array.from(priceComparisonData, ([neighborhood, listings]) => {
+    const totalPrice = d3.sum(listings, (d) => +d.price); 
+    const averagePrice = totalPrice / listings.length;
+    return { neighborhood, averagePrice };
+  });
+});
 
-// Create the bars
-svg.selectAll("rect")
-  .data(dataset)
+
+// Load the GeoJSON data
+d3.json("Boundaries - Neighborhoods.geojson").then(function(geojson) {
+  // Log the GeoJSON data to the console
+  console.log(geojson);
+
+});
+
+// Load the GeoJSON data
+d3.json("Boundaries - Neighborhoods.geojson").then(function(geojson) {
+  // Set up the map dimensions and projection
+  const width = 1000; 
+  const height = 800; 
+  const projection = d3.geoMercator().fitSize([width, height], geojson);
+
+  // Create an SVG container for the map
+  const svg = d3.select("#map-container")
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+  // Create a path generator for the GeoJSON features
+  const path = d3.geoPath().projection(projection);
+
+  // Draw the map features
+  svg.selectAll("path")
+    .data(geojson.features)
+    .enter()
+    .append("path")
+    .attr("d", path)
+    .attr("fill", "lightblue") 
+    .attr("stroke", "white"); 
+
+    // Add labels for neighborhood names
+  svg.selectAll("text")
+  .data(geojson.features)
   .enter()
-  .append("rect")
-  .attr("x", (d, i) => i * 50) // Horizontal position of each bar (spacing of 50 between bars)
-  .attr("y", (d) => height - d * 10) // Vertical position of each bar (scale height by 10 for better visualization)
-  .attr("width", 40) // Width of each bar
-  .attr("height", (d) => d * 10) // Height of each bar (scaled by 10 for better visualization)
-  .attr("fill", "steelblue"); // Color of the bars
+  .append("text")
+  .attr("transform", (d) => `translate(${path.centroid(d)})`)
+  .attr("text-anchor", "middle")
+  .attr("font-size", "5px")
+  .text((d) => d.properties.pri_neigh); 
+
+
+
+});
+
+
+
+
